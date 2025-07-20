@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Juego Completo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #0175ce; }
+    #game { background: white; padding: 20px; max-width: 500px; margin: auto; border-radius: 8px; }
+    .stats { margin-bottom: 10px; }
+    button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <h1>Juego</h1>
+
+    <div class="stats">
+      <strong>Heroe:</strong> <span id="heroName"></span> (<span id="heroType"></span>)<br />
+      Vida: <span id="heroHealth"></span>
+    </div>
+
+    <div class="stats">
+      <strong>Enemigo:</strong> <span id="enemyName"></span><br />
+      Vida: <span id="enemyHealth"></span>
+    </div>
+
+    <div>
+      <button id="attackBtn">Atacar</button>
+      <button id="strategyMelee">Estrategia: Espada</button>
+      <button id="strategyRanged">Estrategia: Flechas</button>
+      <button id="strategyMagic">Estrategia: Magia</button>
+    </div>
+
+    <h3>Log de Combate:</h3>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // --- Observer ---
+    class Observable {
+      constructor() {
+        this.observers = [];
+      }
+
+      subscribe(observer) {
+        this.observers.push(observer);
+      }
+
+      notify(data) {
+        this.observers.forEach(obs => obs.update(data));
+      }
+    }
+
+    // --- Character (Base) ---
+    class Character extends Observable {
+      constructor(name, health, attackPower) {
+        super();
+        this.name = name;
+        this.health = health;
+        this.attackPower = attackPower;
+      }
+
+      receiveDamage(damage) {
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
+        this.notify({ name: this.name, health: this.health });
+      }
+
+      attack(target) {
+        if (this.health <= 0) return;
+        target.receiveDamage(this.attackPower);
+      }
+    }
+
+    // --- Hero (extiende Character) ---
+    class Hero extends Character {
+      constructor(name, health, attackPower, type) {
+        super(name, health, attackPower);
+        this.type = type;
+        this.attackStrategy = null;
+      }
+
+      setStrategy(strategy) {
+        this.attackStrategy = strategy;
+      }
+
+      attack(target) {
+        if (this.attackStrategy) {
+          this.attackStrategy.execute(this, target);
+        } else {
+          super.attack(target);
+        }
+      }
+    }
+
+    // --- Enemy ---
+    class Enemy extends Character {
+      constructor(name, health, attackPower, level) {
+        super(name, health, attackPower);
+        this.level = level;
+      }
+    }
+
+    // --- Factory Method para crear heroes ---
+    class HeroFactory {
+      static createHero(type) {
+        switch (type) {
+          case "warrior":
+            return new Hero("Leon", 100, 20, "warrior");
+          default:
+            return null;
+        }
+      }
+    }
+
+    // --- Strategy: formas de atacar ---
+    class MeleeAttack {
+      execute(user, target) {
+        const damage = user.attackPower;
+        log(`${user.name} golpea con su espada a ${target.name} causando ${damage} de dano.`);
+        target.receiveDamage(damage);
+      }
+    }
+
+    class RangedAttack {
+      execute(user, target) {
+        const damage = user.attackPower + 5;
+        log(`${user.name} lanza una flecha a ${target.name} causando ${damage} de dano.`);
+        target.receiveDamage(damage);
+      }
+    }
+
+    class MagicAttack {
+      execute(user, target) {
+        const damage = user.attackPower + 10;
+        log(`${user.name} lanza un hechizo a ${target.name} causando ${damage} de dano.`);
+        target.receiveDamage(damage);
+      }
+    }
+
+    // --- UI y logica del juego ---
+    const heroName = document.getElementById("heroName");
+    const heroType = document.getElementById("heroType");
+    const heroHealth = document.getElementById("heroHealth");
+
+    const enemyName = document.getElementById("enemyName");
+    const enemyHealth = document.getElementById("enemyHealth");
+
+    const attackBtn = document.getElementById("attackBtn");
+    const strategyMelee = document.getElementById("strategyMelee");
+    const strategyRanged = document.getElementById("strategyRanged");
+    const strategyMagic = document.getElementById("strategyMagic");
+
+    const logDiv = document.getElementById("log");
+
+    function log(text) {
+      const p = document.createElement("p");
+      p.textContent = text;
+      logDiv.appendChild(p);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStats() {
+      heroName.textContent = hero.name;
+      heroType.textContent = hero.type;
+      heroHealth.textContent = hero.health;
+
+      enemyName.textContent = enemy.name;
+      enemyHealth.textContent = enemy.health;
+    }
+
+    // Creamos personajes
+    const hero = HeroFactory.createHero("warrior");
+    const enemy = new Enemy("Orco", 100, 15, 2);
+
+    // Estrategia inicial
+    hero.setStrategy(new MeleeAttack());
+
+    // Observer para actualizar UI y log cuando cambie salud
+    const uiObserver = {
+      update(data) {
+        log(` ${data.name} tiene ahora ${data.health} de vida.`);
+        updateStats();
+      },
+    };
+
+    hero.subscribe(uiObserver);
+    enemy.subscribe(uiObserver);
+
+    updateStats();
+
+    attackBtn.addEventListener("click", () => {
+      if (hero.health <= 0 || enemy.health <= 0) {
+        log("El combate ha terminado. Recarga la pagina para jugar de nuevo.");
+        return;
+      }
+      hero.attack(enemy);
+      if (enemy.health > 0) {
+        enemy.attack(hero);
+      } else {
+        log("¡Enemigo derrotado!");
+      }
+      if (hero.health <= 0) {
+        log("El heroe ha sido derrotado...");
+      }
+    });
+
+    strategyMelee.addEventListener("click", () => {
+      hero.setStrategy(new MeleeAttack());
+      log("Heroe cambia estrategia a Espada.");
+    });
+
+    strategyRanged.addEventListener("click", () => {
+      hero.setStrategy(new RangedAttack());
+      log("Heroe cambia estrategia a Flechas.");
+    });
+
+    strategyMagic.addEventListener("click", () => {
+      hero.setStrategy(new MagicAttack());
+      log("Heroe cambia estrategia a Magia.");
+    });
+  </script>
+</body>
+</html>

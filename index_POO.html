@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Juego POO </title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #0175ce; }
+    #game { background: white; padding: 20px; max-width: 500px; margin: auto; border-radius: 8px; }
+    .stats { margin-bottom: 10px; }
+    button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <h1>Juego</h1>
+
+    <div class="stats">
+      <strong>Heroe:</strong> <span id="heroName"></span> (<span id="heroType"></span>)<br />
+      Vida: <span id="heroHealth"></span>
+    </div>
+
+    <div class="stats">
+      <strong>Enemigo:</strong> <span id="enemyName"></span><br />
+      Vida: <span id="enemyHealth"></span>
+    </div>
+
+    <div>
+      <button id="attackBtn">Atacar</button>
+      <button id="strategyMelee">Estrategia: Espada</button>
+      <button id="strategyRanged">Estrategia: Flechas</button>
+      <button id="strategyMagic">Estrategia: Magia</button>
+    </div>
+
+    <h3>Log de Combate:</h3>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // Clase personaje basica con propiedades comunes
+    class Character {
+      constructor(name, type, health, attackPower) {
+        this.name = name;
+        this.type = type; // solo para heroe, para enemigo puede ser ""
+        this.health = health;
+        this.attackPower = attackPower;
+      }
+
+      // Recibe dano y baja vida
+      receiveDamage(damage) {
+        this.health -= damage;
+        if(this.health < 0) this.health = 0;
+      }
+
+      // Ataca a otro personaje con daño basico
+      attack(target) {
+        target.receiveDamage(this.attackPower);
+      }
+    }
+
+    // Creamos heroe con estrategia fija que cambia su metodo atacar segun boton
+    class Hero extends Character {
+      constructor(name, type, health, attackPower) {
+        super(name, type, health, attackPower);
+        this.currentStrategy = "melee"; // default espada
+      }
+
+      // Cambia estrategia: melee, ranged o magic
+      setStrategy(strategy) {
+        this.currentStrategy = strategy;
+      }
+
+      attack(target) {
+        let damage = this.attackPower;
+
+        switch(this.currentStrategy) {
+          case "melee":
+            log(`${this.name} golpea con su espada a ${target.name} causando ${damage} de dano.`);
+            break;
+          case "ranged":
+            damage += 5;
+            log(`${this.name} lanza una flecha a ${target.name} causando ${damage} de dano.`);
+            break;
+          case "magic":
+            damage += 10;
+            log(`${this.name} lanza un hechizo a ${target.name} causando ${damage} de dano.`);
+            break;
+        }
+
+        target.receiveDamage(damage);
+      }
+    }
+
+    // Enemigo normal con metodo simple
+    class Enemy extends Character {
+      constructor(name, health, attackPower) {
+        super(name, "", health, attackPower);
+      }
+    }
+
+    // Variables UI
+    const heroName = document.getElementById("heroName");
+    const heroType = document.getElementById("heroType");
+    const heroHealth = document.getElementById("heroHealth");
+
+    const enemyName = document.getElementById("enemyName");
+    const enemyHealth = document.getElementById("enemyHealth");
+
+    const attackBtn = document.getElementById("attackBtn");
+    const strategyMelee = document.getElementById("strategyMelee");
+    const strategyRanged = document.getElementById("strategyRanged");
+    const strategyMagic = document.getElementById("strategyMagic");
+
+    const logDiv = document.getElementById("log");
+
+    // Funcion para loggear en pantalla
+    function log(text) {
+      const p = document.createElement("p");
+      p.textContent = text;
+      logDiv.appendChild(p);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // Actualizar valores UI
+    function updateStats() {
+      heroName.textContent = hero.name;
+      heroType.textContent = hero.type;
+      heroHealth.textContent = hero.health;
+
+      enemyName.textContent = enemy.name;
+      enemyHealth.textContent = enemy.health;
+    }
+
+    // Crear personajes
+    const hero = new Hero("Leon", "warrior", 100, 20);
+    const enemy = new Enemy("Orco", 100, 15);
+
+    updateStats();
+
+    // Eventos botones
+
+    attackBtn.addEventListener("click", () => {
+      if(hero.health <= 0 || enemy.health <= 0) {
+        log("El combate ha terminado. Recarga la pagina para jugar de nuevo.");
+        return;
+      }
+      hero.attack(enemy);
+
+      if(enemy.health > 0) {
+        enemy.attack(hero);
+      } else {
+        log("¡Enemigo derrotado!");
+      }
+
+      if(hero.health <= 0) {
+        log("El heroe ha sido derrotado...");
+      }
+      updateStats();
+    });
+
+    strategyMelee.addEventListener("click", () => {
+      hero.setStrategy("melee");
+      log("Heroe cambia estrategia a Espada.");
+    });
+
+    strategyRanged.addEventListener("click", () => {
+      hero.setStrategy("ranged");
+      log("Heroe cambia estrategia a Flechas.");
+    });
+
+    strategyMagic.addEventListener("click", () => {
+      hero.setStrategy("magic");
+      log("Heroe cambia estrategia a Magia.");
+    });
+  </script>
+</body>
+</html>
