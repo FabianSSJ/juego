@@ -104,17 +104,16 @@
 
     // --- Factory Method para crear heroes ---
     class HeroFactory {
-      static createHero(type) {
-        switch (type) {
-          case "warrior":
-            return new Hero("Leon", 100, 20, "warrior");
-            case "arquero":
-            return new Hero("Archer", 80, 15, "arquero");
-          default:
-            return null;
+      /**
+       * Crea un heroe con tipo especifico (guerrero, mago, arquero...)
+       * @param {string} type - tipo de heroe
+       * @param {object} hero - objeto con datos del heroe
+       * @returns {Hero} - heroe creado
+       */
+      static createHero(type, hero) {
+            return new Hero(hero.name, hero.life, hero.attack, type);
         }
       }
-    }
 
     // --- Strategy: formas de atacar ---
     class MeleeAttack {
